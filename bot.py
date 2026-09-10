@@ -110,6 +110,14 @@ def member_has_role(member: discord.Member, role_id: int) -> bool:
     return any(role.id == role_id for role in member.roles)
 
 
+def member_can_review(member: discord.Member, reviewer_role_id: int) -> bool:
+    return (
+        member.guild_permissions.administrator
+        or member.guild_permissions.manage_guild
+        or member_has_role(member, reviewer_role_id)
+    )
+
+
 async def set_status_tag(thread: discord.Thread, status_key: str):
     forum = get_forum(thread)
     if forum is None:
@@ -172,11 +180,11 @@ class LOAStatusView(discord.ui.View):
             return False
 
         member = interaction.user
-        if not isinstance(member, discord.Member) or not member_has_role(
+        if not isinstance(member, discord.Member) or not member_can_review(
             member, settings["reviewer_role_id"]
         ):
             await interaction.response.send_message(
-                "You do not have permission to change LOA statuses.",
+                "You do not have permission to change LOA statuses. You need the configured reviewer role or Server Administrator/Manage Server permission.",
                 ephemeral=True,
             )
             return False
@@ -295,7 +303,7 @@ async def loa_setup(
         "✅ **LOA Manager is configured for this server.**\n\n"
         f"**LOA Forum:** {forum.mention}\n"
         f"**Reviewer Role:** {reviewer_role.mention}\n\n"
-        "New posts in that forum will automatically be marked Pending and sent to the reviewer role with status buttons.",
+        "New posts in that forum will automatically be marked Pending and sent to the reviewer role with status buttons. Server administrators and members with Manage Server permission can also use the status buttons.",
         ephemeral=True,
         allowed_mentions=discord.AllowedMentions.none(),
     )
